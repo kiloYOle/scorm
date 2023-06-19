@@ -11,10 +11,11 @@ const (
 )
 
 type Field struct {
-	Name       string
-	NameDB     string
-	Type       string
-	PrimaryKey bool
+	Name          string
+	NameDB        string
+	Type          string
+	PrimaryKey    bool
+	ScenarioField bool
 }
 
 var GoTypesToDbTypes = map[string]string{

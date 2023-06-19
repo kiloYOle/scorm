@@ -5,18 +5,21 @@ import (
 	"strings"
 )
 
-func Insert(value interface{}) {
+func Insert(value interface{}, scenario string) {
 	table := CreateTableFromStruct(value)
 	values, fNames := CreateFieldValuesAndNames(table, value)
+	if table.IsScenarioBased {
+		addScenarioFields(&values, &fNames, scenario)
+	}
 	insertString := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", table.Name, strings.Join(fNames, ","), strings.Join(values, ","))
 	fmt.Println(insertString)
 	_, err := DB.Exec(insertString)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Insert error", err)
 	}
 }
 
-func Update(value interface{}) {
+func Update(value interface{}, scenario string) {
 	table := CreateTableFromStruct(value)
 	values, fNames := CreateFieldValuesAndNames(table, value)
 	pkValues, pkNames := CreatePKFieldValuesAndNames(table, value)
@@ -36,7 +39,7 @@ func Update(value interface{}) {
 	}
 }
 
-func Delete(value interface{}) {
+func Delete(value interface{}, scenario string) {
 	table := CreateTableFromStruct(value)
 	pkValues, pkNames := CreatePKFieldValuesAndNames(table, value)
 	var whereString []string
@@ -49,4 +52,11 @@ func Delete(value interface{}) {
 	if err != nil {
 		fmt.Println(err)
 	}
+}
+
+func addScenarioFields(values *[]string, fNames *[]string, scenarioId string) {
+	fmt.Println("len before", len(*values))
+	*values = append(*values, fmt.Sprintf("'%s'", scenarioId))
+	*fNames = append(*fNames, "scenarioId")
+	fmt.Println("len after", len(*values))
 }

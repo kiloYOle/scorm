@@ -7,20 +7,26 @@ import (
 func TestDbInsert(t *testing.T) {
 	insertTest := InsertTest1{name: "test", flag: true, nr: 12}
 	AutoMigration(&insertTest)
-	Insert(&insertTest)
+	Insert(&insertTest, "")
 }
 
 func TestDbUpdate(t *testing.T) {
 	updateTest := InsertTest1{name: "test", flag: true, nr: 12}
 	AutoMigration(&updateTest)
-	Insert(&updateTest)
+	Insert(&updateTest, "")
 	updateTest.nr = 42
-	Update(&updateTest)
+	Update(&updateTest, "")
 }
 
 func TestDbDelete(t *testing.T) {
 	deleteTest := InsertTest1{name: "test", flag: true, nr: 12}
 	AutoMigration(&deleteTest)
-	Insert(&deleteTest)
-	Delete(&deleteTest)
+	Insert(&deleteTest, "")
+	Delete(&deleteTest, "")
+}
+
+func TestDbInsertScenario(t *testing.T) {
+	insertTest := InsertTestScenario1{name: "test", flag: true, nr: 12}
+	AutoMigration(&insertTest)
+	Insert(&insertTest, "scenario1")
 }

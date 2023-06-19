@@ -38,15 +38,13 @@ type TableTest2 struct {
 	Number12_2 float64
 }
 
-type ScenarioTableTest2 struct {
+type ScenarioTableTest1 struct {
 	Scenario
 	String01_2 string `scorm:"pk"`
 	Bool01_2   bool
 	Number01_2 int
 }
 
-// TestHelloName calls greetings.Hello with a name, checking
-// for a valid return value.
 func TestAutomigration(t *testing.T) {
 	OpenTestDB()
 	AutoMigration(&TableTest1{}, &TableTest2{})
@@ -55,6 +53,5 @@ func TestAutomigration(t *testing.T) {
 
 func TestScenarioAutomigration(t *testing.T) {
 	OpenTestDB()
-	AutoMigration(&TableTest1{}, &TableTest2{})
-	AutoMigration()
+	AutoMigration(&ScenarioTableTest1{})
 }

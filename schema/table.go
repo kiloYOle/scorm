@@ -14,12 +14,9 @@ type Table struct {
 	FieldsByDBName  map[string]*Field
 }
 
-type Scenario struct {
-	ScenarioId string `scorm:"pk"`
-}
-
 func CreateTableFromStruct(q interface{}) Table {
 	fields := []*Field{}
+	isScenarioBased := false
 
 	v := reflect.ValueOf(q).Elem()
 	//fmt.Printf("Table name %s\n", v.Type().Name())
@@ -30,9 +27,14 @@ func CreateTableFromStruct(q interface{}) Table {
 		tags, _ := v.Type().Field(j).Tag.Lookup("scorm")
 		isPK := tags == "pk"
 		//fmt.Printf("Field Name: %s Type: %s PK: %t\n", n, t, isPK)
-
-		field := Field{Name: v.Type().Field(j).Name, NameDB: v.Type().Field(j).Name, Type: GoTypesToDbTypes[f.Type().Name()], PrimaryKey: isPK}
-		fields = append(fields, &field)
+		if f.Type().Name() == "Scenario" {
+			field := Field{Name: "ScenarioId", NameDB: "ScenarioId", Type: GoTypesToDbTypes["string"], PrimaryKey: true, ScenarioField: true}
+			fields = append(fields, &field)
+			isScenarioBased = true
+		} else {
+			field := Field{Name: v.Type().Field(j).Name, NameDB: v.Type().Field(j).Name, Type: GoTypesToDbTypes[f.Type().Name()], PrimaryKey: isPK, ScenarioField: false}
+			fields = append(fields, &field)
+		}
 	}
 
 	fieldMapName := make(map[string]*Field)
@@ -43,7 +45,7 @@ func CreateTableFromStruct(q interface{}) Table {
 	}
 
 	table := Table{Name: v.Type().Name(), NameDB: v.Type().Name(), Fields: fields,
-		FieldsByName: fieldMapName, FieldsByDBName: fieldMapDbName}
+		FieldsByName: fieldMapName, FieldsByDBName: fieldMapDbName, IsScenarioBased: isScenarioBased}
 
 	return table
 }
@@ -55,8 +57,10 @@ func CreateFieldValuesAndNames(table Table, row interface{}) ([]string, []string
 	v := reflect.ValueOf(row).Elem()
 	for j := 0; j < v.NumField(); j++ {
 		f := v.Type().Field(j)
-		values = append(values, ReflectValueToDBValue(v.Field(j)))
-		fieldNames = append(fieldNames, table.FieldsByName[f.Name].NameDB)
+		if f.Type.Kind() != reflect.Struct {
+			values = append(values, ReflectValueToDBValue(v.Field(j)))
+			fieldNames = append(fieldNames, table.FieldsByName[f.Name].NameDB)
+		}
 	}
 	return values, fieldNames
 }

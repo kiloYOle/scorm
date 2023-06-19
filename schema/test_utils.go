@@ -17,6 +17,13 @@ type InsertTest1 struct {
 	nr   int
 }
 
+type InsertTestScenario1 struct {
+	Scenario
+	name string `scorm:"pk"`
+	flag bool
+	nr   int
+}
+
 func RunTestMain(m *testing.M) (code int, err error) {
 	// need to define the relative path to godotenv while running tests
 	err = godotenv.Load("../.env")

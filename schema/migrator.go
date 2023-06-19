@@ -14,6 +14,7 @@ func AutoMigration(values ...interface{}) {
 	field2 := schema.Field{Name: "Other", NameDB: "Other", Type: "INT", PrimaryKey: false}
 	fields = append(fields, &field2)
 	table := schema.Table{Name: "Test", NameDB: "TestDB", Fields: fields}*/
+	createScenario := false
 	for _, value := range values {
 		table := CreateTableFromStruct(value)
 		if tableExists(DB, table) {
@@ -22,8 +23,23 @@ func AutoMigration(values ...interface{}) {
 			fmt.Printf("Creating table %s\n", table.Name)
 			createTable(DB, table)
 		}
+		if table.IsScenarioBased {
+			createScenario = true
+		}
+	}
+	if createScenario {
+		CreateScenarioTables()
+
 	}
 	fmt.Println("Auto-migration completed")
+}
+
+func CreateScenarioTables() {
+	table := CreateTableFromStruct(&ScenarioTable{})
+	createTable(DB, table)
+	table = CreateTableFromStruct(&ScenarioVersionTable{})
+	createTable(DB, table)
+	fmt.Println("Scenario tables created")
 }
 
 func tableExists(db *sql.DB, table Table) bool {
