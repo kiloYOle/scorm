@@ -2,6 +2,7 @@ package schema
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -52,6 +53,38 @@ func Delete(value interface{}, scenario string) {
 	if err != nil {
 		fmt.Println(err)
 	}
+}
+
+func FindAll[T any](value *T, scenario string) ([]T, error) {
+	var result []T
+	table := CreateTableFromStruct(value)
+	//values, fNames := CreateFieldValuesAndNames(table, value)
+	//pkValues, pkNames := CreatePKFieldValuesAndNames(table, value)
+	fmt.Printf("SELECT * FROM %s\n", table.NameDB)
+	rows, err := DB.Query(fmt.Sprintf("SELECT * FROM %s", table.NameDB))
+	if err != nil {
+		fmt.Println(err)
+		return result, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		s := reflect.ValueOf(value).Elem()
+		numCols := s.NumField()
+		columns := make([]interface{}, numCols)
+		for i := 0; i < numCols; i++ {
+			field := s.Field(i)
+			columns[i] = field.Addr().Interface()
+		}
+		err := rows.Scan(columns...)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println(s)
+		result = append(result, s.Interface().(T))
+	}
+	fmt.Println(result)
+	return result, err
 }
 
 func addScenarioFields(values *[]string, fNames *[]string, scenarioId string) {

@@ -12,16 +12,16 @@ import (
 )
 
 type InsertTest1 struct {
-	name string `scorm:"pk"`
-	flag bool
-	nr   int
+	Name string `scorm:"pk"`
+	Flag bool
+	Nr   int
 }
 
 type InsertTestScenario1 struct {
 	Scenario
-	name string `scorm:"pk"`
-	flag bool
-	nr   int
+	Name string `scorm:"pk"`
+	Flag bool
+	Nr   int
 }
 
 func RunTestMain(m *testing.M) (code int, err error) {
