@@ -6,11 +6,19 @@ import (
 	"strings"
 )
 
-func Insert(value interface{}, scenario string) {
+func Insert(value interface{}, scenarioId string) error {
 	table := CreateTableFromStruct(value)
 	values, fNames := CreateFieldValuesAndNames(table, value)
 	if table.IsScenarioBased {
-		addScenarioFields(&values, &fNames, scenario)
+		scenario, err := Find(&ScenarioTable{ScenarioId: scenarioId}, "")
+		if len(scenario) > 0 {
+			addScenarioFields(&values, &fNames, scenarioId)
+		} else if err != nil {
+			return err
+		} else {
+			fmt.Println("Scenario not found, record not inserted")
+			return nil
+		}
 	}
 	insertString := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", table.Name, strings.Join(fNames, ","), strings.Join(values, ","))
 	fmt.Println(insertString)
@@ -18,6 +26,7 @@ func Insert(value interface{}, scenario string) {
 	if err != nil {
 		fmt.Println("Insert error", err)
 	}
+	return nil
 }
 
 func Update(value interface{}, scenario string) {
@@ -55,6 +64,45 @@ func Delete(value interface{}, scenario string) {
 	}
 }
 
+func Find[T any](value *T, scenario string) ([]T, error) {
+	var result []T
+	table := CreateTableFromStruct(value)
+	//values, fNames := CreateFieldValuesAndNames(table, value)
+	pkValues, pkNames := CreatePKFieldValuesAndNames(table, value)
+	whereClause := createWhereClauseAnd(&pkValues, &pkNames)
+	fmt.Printf("SELECT * FROM %s WHERE %s\n", table.NameDB, whereClause)
+	rows, err := DB.Query(fmt.Sprintf("SELECT * FROM %s WHERE %s", table.NameDB, whereClause))
+	if err != nil {
+		fmt.Println(err)
+		return result, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		s := reflect.ValueOf(value).Elem()
+		numCols := s.NumField()
+		columns := make([]interface{}, numCols)
+		for i := 0; i < numCols; i++ {
+			field := s.Field(i)
+			//fmt.Printf("%s %s %s\n", field.Kind(), s.Type().Field(i).Name, field)
+			if field.Type().Kind() != reflect.Struct {
+				columns[i] = field.Addr().Interface()
+			} else if s.Type().Field(i).Name == "Scenario" {
+				var scenarioId string
+				columns[i] = &scenarioId
+			}
+		}
+		err := rows.Scan(columns...)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println(s)
+		result = append(result, s.Interface().(T))
+	}
+	fmt.Println(result)
+	return result, err
+}
+
 func FindAll[T any](value *T, scenario string) ([]T, error) {
 	var result []T
 	table := CreateTableFromStruct(value)
@@ -74,7 +122,13 @@ func FindAll[T any](value *T, scenario string) ([]T, error) {
 		columns := make([]interface{}, numCols)
 		for i := 0; i < numCols; i++ {
 			field := s.Field(i)
-			columns[i] = field.Addr().Interface()
+			//fmt.Printf("%s %s %s\n", field.Kind(), s.Type().Field(i).Name, field)
+			if field.Type().Kind() != reflect.Struct {
+				columns[i] = field.Addr().Interface()
+			} else if s.Type().Field(i).Name == "Scenario" {
+				var scenarioId string
+				columns[i] = &scenarioId
+			}
 		}
 		err := rows.Scan(columns...)
 		if err != nil {
@@ -88,8 +142,14 @@ func FindAll[T any](value *T, scenario string) ([]T, error) {
 }
 
 func addScenarioFields(values *[]string, fNames *[]string, scenarioId string) {
-	fmt.Println("len before", len(*values))
 	*values = append(*values, fmt.Sprintf("'%s'", scenarioId))
 	*fNames = append(*fNames, "scenarioId")
-	fmt.Println("len after", len(*values))
+}
+
+func createWhereClauseAnd(values *[]string, fNames *[]string) string {
+	var fields []string
+	for i, fname := range *fNames {
+		fields = append(fields, fmt.Sprintf("%s = %s", fname, (*values)[i]))
+	}
+	return strings.Join(fields, " AND ")
 }

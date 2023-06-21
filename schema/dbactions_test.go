@@ -43,9 +43,10 @@ func TestFindAll(t *testing.T) {
 
 func TestFindAllError(t *testing.T) {
 	insertTest := InsertTest1{Name: "test", Flag: true, Nr: 12}
+	// will fail as db table not created
 	_, err := FindAll(&insertTest, "")
 	if err == nil {
-		t.Fatalf("Expecting error but not receiving it")
+		t.Fatalf("Expecting an error but not receiving it")
 	}
 }
 
@@ -54,4 +55,20 @@ func TestDbInsertScenario(t *testing.T) {
 	AutoMigration(&insertTest)
 	Insert(&insertTest, "scenario1")
 
+}
+
+func TestDbFindScenario(t *testing.T) {
+	insertTest := InsertTestScenario1{Name: "test", Flag: true, Nr: 12}
+	AutoMigration(&insertTest)
+	Insert(&insertTest, "not existing")
+	result, _ := FindAll(&insertTest, "")
+	if len(result) != 0 {
+		t.Fatalf("Expecting 0 rows but found %d", len(result))
+	}
+	scenario := CreateNewScenario("scenario1", "")
+	Insert(&insertTest, scenario.ScenarioId)
+	result, _ = FindAll(&insertTest, "")
+	if len(result) != 1 {
+		t.Fatalf("Expecting 1 row but found %d", len(result))
+	}
 }

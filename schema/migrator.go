@@ -36,9 +36,13 @@ func AutoMigration(values ...interface{}) {
 
 func CreateScenarioTables() {
 	table := CreateTableFromStruct(&ScenarioTable{})
-	createTable(DB, table)
+	if !tableExists(DB, table) {
+		createTable(DB, table)
+	}
 	table = CreateTableFromStruct(&ScenarioVersionTable{})
-	createTable(DB, table)
+	if !tableExists(DB, table) {
+		createTable(DB, table)
+	}
 	fmt.Println("Scenario tables created")
 }
 
