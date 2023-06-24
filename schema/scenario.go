@@ -1,6 +1,8 @@
 package schema
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
 )
 
@@ -28,4 +30,14 @@ func CreateNewScenario(name string, parent string) *ScenarioTable {
 	Insert(&newScenario, "")
 	Insert(&newScenarioVersion, "")
 	return &newScenario
+}
+
+func createScenarioFieldValuesAndNames(scenarioId string) ([]string, []string) {
+	values := []string{}
+	fieldNames := []string{}
+
+	values = append(values, fmt.Sprintf("'%s'", scenarioId))
+	fieldNames = append(fieldNames, "scenarioId")
+
+	return values, fieldNames
 }

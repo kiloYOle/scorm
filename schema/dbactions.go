@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"database/sql"
 	"fmt"
 	"reflect"
 	"strings"
@@ -68,8 +69,13 @@ func Find[T any](value *T, scenario string) ([]T, error) {
 	var result []T
 	table := CreateTableFromStruct(value)
 	//values, fNames := CreateFieldValuesAndNames(table, value)
-	pkValues, pkNames := CreatePKFieldValuesAndNames(table, value)
-	whereClause := createWhereClauseAnd(&pkValues, &pkNames)
+	values, names := CreatePKFieldValuesAndNames(table, value)
+	if table.IsScenarioBased {
+		scValues, scNames := createScenarioFieldValuesAndNames(scenario)
+		values = append(values, scValues...)
+		names = append(names, scNames...)
+	}
+	whereClause := createWhereClauseAnd(&values, &names)
 	fmt.Printf("SELECT * FROM %s WHERE %s\n", table.NameDB, whereClause)
 	rows, err := DB.Query(fmt.Sprintf("SELECT * FROM %s WHERE %s", table.NameDB, whereClause))
 	if err != nil {
@@ -78,67 +84,33 @@ func Find[T any](value *T, scenario string) ([]T, error) {
 	}
 	defer rows.Close()
 
-	for rows.Next() {
-		s := reflect.ValueOf(value).Elem()
-		numCols := s.NumField()
-		columns := make([]interface{}, numCols)
-		for i := 0; i < numCols; i++ {
-			field := s.Field(i)
-			//fmt.Printf("%s %s %s\n", field.Kind(), s.Type().Field(i).Name, field)
-			if field.Type().Kind() != reflect.Struct {
-				columns[i] = field.Addr().Interface()
-			} else if s.Type().Field(i).Name == "Scenario" {
-				var scenarioId string
-				columns[i] = &scenarioId
-			}
-		}
-		err := rows.Scan(columns...)
-		if err != nil {
-			fmt.Println(err)
-		}
-		fmt.Println(s)
-		result = append(result, s.Interface().(T))
-	}
-	fmt.Println(result)
-	return result, err
+	return convertRowsToObject(value, rows)
 }
 
 func FindAll[T any](value *T, scenario string) ([]T, error) {
-	var result []T
 	table := CreateTableFromStruct(value)
-	//values, fNames := CreateFieldValuesAndNames(table, value)
-	//pkValues, pkNames := CreatePKFieldValuesAndNames(table, value)
-	fmt.Printf("SELECT * FROM %s\n", table.NameDB)
-	rows, err := DB.Query(fmt.Sprintf("SELECT * FROM %s", table.NameDB))
+	var whereClause string
+	if table.IsScenarioBased {
+		scValues, scNames := createScenarioFieldValuesAndNames(scenario)
+		whereClause = createWhereClauseAnd(&scValues, &scNames)
+	}
+	var rows *sql.Rows
+	var err error
+	if whereClause == "" {
+		fmt.Printf("SELECT * FROM %s\n", table.NameDB)
+		rows, err = DB.Query(fmt.Sprintf("SELECT * FROM %s", table.NameDB))
+	} else {
+		fmt.Printf("SELECT * FROM %s WHERE %s\n", table.NameDB, whereClause)
+		rows, err = DB.Query(fmt.Sprintf("SELECT * FROM %s WHERE %s", table.NameDB, whereClause))
+	}
+
 	if err != nil {
 		fmt.Println(err)
-		return result, err
+		return nil, err
 	}
 	defer rows.Close()
 
-	for rows.Next() {
-		s := reflect.ValueOf(value).Elem()
-		numCols := s.NumField()
-		columns := make([]interface{}, numCols)
-		for i := 0; i < numCols; i++ {
-			field := s.Field(i)
-			//fmt.Printf("%s %s %s\n", field.Kind(), s.Type().Field(i).Name, field)
-			if field.Type().Kind() != reflect.Struct {
-				columns[i] = field.Addr().Interface()
-			} else if s.Type().Field(i).Name == "Scenario" {
-				var scenarioId string
-				columns[i] = &scenarioId
-			}
-		}
-		err := rows.Scan(columns...)
-		if err != nil {
-			fmt.Println(err)
-		}
-		fmt.Println(s)
-		result = append(result, s.Interface().(T))
-	}
-	fmt.Println(result)
-	return result, err
+	return convertRowsToObject(value, rows)
 }
 
 func addScenarioFields(values *[]string, fNames *[]string, scenarioId string) {
@@ -152,4 +124,33 @@ func createWhereClauseAnd(values *[]string, fNames *[]string) string {
 		fields = append(fields, fmt.Sprintf("%s = %s", fname, (*values)[i]))
 	}
 	return strings.Join(fields, " AND ")
+}
+
+func convertRowsToObject[T any](value *T, rows *sql.Rows) ([]T, error) {
+	var result []T
+
+	for rows.Next() {
+		s := reflect.ValueOf(value).Elem()
+		numCols := s.NumField()
+		columns := make([]interface{}, numCols)
+		for i := 0; i < numCols; i++ {
+			field := s.Field(i)
+			//fmt.Printf("%s %s %s\n", field.Kind(), s.Type().Field(i).Name, field)
+			if field.Type().Kind() != reflect.Struct {
+				columns[i] = field.Addr().Interface()
+			} else if s.Type().Field(i).Name == "Scenario" {
+				var scenarioId string
+				columns[i] = &scenarioId
+			}
+		}
+		err := rows.Scan(columns...)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println(s)
+		result = append(result, s.Interface().(T))
+	}
+	fmt.Println(result)
+
+	return result, nil
 }

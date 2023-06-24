@@ -51,10 +51,22 @@ func TestFindAllError(t *testing.T) {
 }
 
 func TestDbInsertScenario(t *testing.T) {
-	insertTest := InsertTestScenario1{Name: "test", Flag: true, Nr: 12}
-	AutoMigration(&insertTest)
-	Insert(&insertTest, "scenario1")
-
+	insertTest1 := InsertTestScenario1{Name: "test", Flag: true, Nr: 12}
+	insertTest2 := InsertTestScenario1{Name: "test 2", Flag: true, Nr: 42}
+	AutoMigration(&insertTest1)
+	scenario1 := CreateNewScenario("scenario1", "")
+	scenario2 := CreateNewScenario("scenario2", "")
+	Insert(&insertTest1, scenario1.ScenarioId)
+	Insert(&insertTest1, scenario2.ScenarioId)
+	Insert(&insertTest2, scenario2.ScenarioId)
+	result, _ := FindAll(&insertTest1, scenario1.ScenarioId)
+	if len(result) != 1 {
+		t.Fatalf("Expecting 1 row but found %d", len(result))
+	}
+	result, _ = FindAll(&insertTest1, scenario2.ScenarioId)
+	if len(result) != 2 {
+		t.Fatalf("Expecting 2 rows but found %d", len(result))
+	}
 }
 
 func TestDbFindScenario(t *testing.T) {
@@ -67,7 +79,7 @@ func TestDbFindScenario(t *testing.T) {
 	}
 	scenario := CreateNewScenario("scenario1", "")
 	Insert(&insertTest, scenario.ScenarioId)
-	result, _ = FindAll(&insertTest, "")
+	result, _ = FindAll(&insertTest, scenario.ScenarioId)
 	if len(result) != 1 {
 		t.Fatalf("Expecting 1 row but found %d", len(result))
 	}
