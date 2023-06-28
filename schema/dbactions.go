@@ -11,17 +11,16 @@ func Insert(value interface{}, scenarioId string) error {
 	table := CreateTableFromStruct(value)
 	values, fNames := CreateFieldValuesAndNames(table, value)
 	if table.IsScenarioBased {
-		scenario, err := Find(&ScenarioTable{ScenarioId: scenarioId}, "")
-		if len(scenario) > 0 {
-			addScenarioFields(&values, &fNames, scenarioId)
-		} else if err != nil {
-			return err
+		scenario, err := getScenario(scenarioId)
+		if err == nil {
+			addScenarioFields(&values, &fNames, scenario.ScenarioId)
 		} else {
-			fmt.Println("Scenario not found, record not inserted")
+			fmt.Println(err)
 			return nil
 		}
 	}
 	insertString := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", table.Name, strings.Join(fNames, ","), strings.Join(values, ","))
+	fmt.Println("insert string")
 	fmt.Println(insertString)
 	_, err := DB.Exec(insertString)
 	if err != nil {
@@ -70,12 +69,13 @@ func Find[T any](value *T, scenario string) ([]T, error) {
 	table := CreateTableFromStruct(value)
 	//values, fNames := CreateFieldValuesAndNames(table, value)
 	values, names := CreatePKFieldValuesAndNames(table, value)
-	if table.IsScenarioBased {
-		scValues, scNames := createScenarioFieldValuesAndNames(scenario)
-		values = append(values, scValues...)
-		names = append(names, scNames...)
-	}
 	whereClause := createWhereClauseAnd(&values, &names)
+	if table.IsScenarioBased {
+		scenarios, _ := getScenarioAndParents(scenario)
+		scValues, scNames := createScenarioFieldValuesAndNames(scenarios)
+		whereClause_sc := createWhereClauseOr(&scValues, &scNames)
+		whereClause = fmt.Sprintf("%s AND (%s)", whereClause, whereClause_sc)
+	}
 	fmt.Printf("SELECT * FROM %s WHERE %s\n", table.NameDB, whereClause)
 	rows, err := DB.Query(fmt.Sprintf("SELECT * FROM %s WHERE %s", table.NameDB, whereClause))
 	if err != nil {
@@ -91,8 +91,9 @@ func FindAll[T any](value *T, scenario string) ([]T, error) {
 	table := CreateTableFromStruct(value)
 	var whereClause string
 	if table.IsScenarioBased {
-		scValues, scNames := createScenarioFieldValuesAndNames(scenario)
-		whereClause = createWhereClauseAnd(&scValues, &scNames)
+		scenarios, _ := getScenarioAndParents(scenario)
+		scValues, scNames := createScenarioFieldValuesAndNames(scenarios)
+		whereClause = createWhereClauseOr(&scValues, &scNames)
 	}
 	var rows *sql.Rows
 	var err error
@@ -126,6 +127,14 @@ func createWhereClauseAnd(values *[]string, fNames *[]string) string {
 	return strings.Join(fields, " AND ")
 }
 
+func createWhereClauseOr(values *[]string, fNames *[]string) string {
+	var fields []string
+	for i, fname := range *fNames {
+		fields = append(fields, fmt.Sprintf("%s = %s", fname, (*values)[i]))
+	}
+	return strings.Join(fields, " OR ")
+}
+
 func convertRowsToObject[T any](value *T, rows *sql.Rows) ([]T, error) {
 	var result []T
 
@@ -147,10 +156,8 @@ func convertRowsToObject[T any](value *T, rows *sql.Rows) ([]T, error) {
 		if err != nil {
 			fmt.Println(err)
 		}
-		fmt.Println(s)
 		result = append(result, s.Interface().(T))
 	}
-	fmt.Println(result)
 
 	return result, nil
 }
