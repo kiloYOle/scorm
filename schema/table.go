@@ -28,8 +28,10 @@ func CreateTableFromStruct(q interface{}) Table {
 		isPK := tags == "pk"
 		//fmt.Printf("Field Name: %s Type: %s PK: %t\n", n, t, isPK)
 		if f.Type().Name() == "Scenario" {
-			field := Field{Name: "ScenarioId", NameDB: "ScenarioId", Type: GoTypesToDbTypes["string"], PrimaryKey: true, ScenarioField: true}
+			field := Field{Name: "ScenarioVersionId", NameDB: "ScenarioVersionId", Type: GoTypesToDbTypes["string"], PrimaryKey: true, ScenarioField: true}
 			fields = append(fields, &field)
+			field2 := Field{Name: "IsDeleted", NameDB: "IsDeleted", Type: GoTypesToDbTypes["bool"], PrimaryKey: true, ScenarioField: true}
+			fields = append(fields, &field2)
 			isScenarioBased = true
 		} else {
 			field := Field{Name: v.Type().Field(j).Name, NameDB: v.Type().Field(j).Name, Type: GoTypesToDbTypes[f.Type().Name()], PrimaryKey: isPK, ScenarioField: false}
