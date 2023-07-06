@@ -138,12 +138,12 @@ func TestDbFindAllScenarioParent(t *testing.T) {
 		t.Fatalf("Expecting 1 row but found %d", len(result))
 	}
 	result, _ = FindAll(&insertTest1, scenario_child.ScenarioId)
-	if len(result) != 2 {
-		t.Fatalf("Expecting 2 rows but found %d", len(result))
+	if len(result) != 1 {
+		t.Fatalf("Expecting 1 rows but found %d", len(result))
 	}
 	result, _ = FindAll(&insertTest1, scenario_child2.ScenarioId)
-	if len(result) != 3 {
-		t.Fatalf("Expecting 3 rows but found %d", len(result))
+	if len(result) != 1 {
+		t.Fatalf("Expecting 1 rows but found %d", len(result))
 	}
 }
 
@@ -153,9 +153,9 @@ func TestDbFindScenarioParent(t *testing.T) {
 	insertTest3 := InsertTestScenario1{Name: "test 3", Flag: true, Nr: 14}
 	AutoMigration(&insertTest1)
 	scenario_parent := CreateNewScenario("scenario1", "")
+	Insert(&insertTest1, scenario_parent.ScenarioId)
 	scenario_child := CreateNewScenario("scenario2", scenario_parent.ScenarioId)
 	scenario_child2 := CreateNewScenario("scenario3", scenario_child.ScenarioId)
-	Insert(&insertTest1, scenario_parent.ScenarioId)
 	Insert(&insertTest2, scenario_child.ScenarioId)
 	Insert(&insertTest3, scenario_child2.ScenarioId)
 	result, _ := Find(&insertTest1, scenario_parent.ScenarioId)
@@ -180,9 +180,9 @@ func TestDbUpdateScenario(t *testing.T) {
 	insertTest1 := InsertTestScenario1{Name: "test", Flag: true, Nr: 12}
 	AutoMigration(&insertTest1)
 	scenario_parent := CreateNewScenario("scenario1", "")
+	Insert(&insertTest1, scenario_parent.ScenarioId)
 	scenario_child := CreateNewScenario("scenario2", scenario_parent.ScenarioId)
 	scenario_child2 := CreateNewScenario("scenario3", scenario_child.ScenarioId)
-	Insert(&insertTest1, scenario_parent.ScenarioId)
 	insertTest1.Nr = 21
 	Update(&insertTest1, scenario_parent.ScenarioId)
 	insertTest1.Nr = 22
@@ -225,8 +225,8 @@ func TestDbUpdateScenarioUpdateParentKeepChildOriginal(t *testing.T) {
 	insertTest1 := InsertTestScenario1{Name: "test", Flag: true, Nr: 12}
 	AutoMigration(&insertTest1)
 	scenario_parent := CreateNewScenario("scenario1", "")
-	scenario_child := CreateNewScenario("scenario2", scenario_parent.ScenarioId)
 	Insert(&insertTest1, scenario_parent.ScenarioId)
+	scenario_child := CreateNewScenario("scenario2", scenario_parent.ScenarioId)
 	insertTest1.Nr = 21
 	Update(&insertTest1, scenario_parent.ScenarioId)
 	result, _ := Find(&insertTest1, scenario_parent.ScenarioId)

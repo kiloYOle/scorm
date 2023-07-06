@@ -139,12 +139,12 @@ func getScenarioVersionsForAllParents(scenarioId string) ([]ScenarioVersionTable
 	return result, err
 }
 
-func createScenarioVersionFieldValuesAndNames(scenarios []ScenarioVersionTable) ([]string, []string) {
+func createScenarioVersionFieldValuesAndNames(scenarioVersions []ScenarioVersionTable) ([]string, []string) {
 	values := []string{}
 	fieldNames := []string{}
 
-	for _, sc := range scenarios {
-		values = append(values, fmt.Sprintf("'%s'", sc.ScenarioVersionId))
+	for _, scv := range scenarioVersions {
+		values = append(values, fmt.Sprintf("'%s'", scv.ScenarioVersionId))
 		fieldNames = append(fieldNames, "ScenarioVersionId")
 	}
 	return values, fieldNames

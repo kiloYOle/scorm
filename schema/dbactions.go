@@ -28,7 +28,7 @@ func Insert(value interface{}, scenarioId string) error {
 	return nil
 }
 
-func Update[T any](value *T, scenario string) {
+func Update[T any](value *T, scenarioId string) {
 	table := CreateTableFromStruct(value)
 	values, fNames := CreateFieldValuesAndNames(table, value)
 	pkValues, pkNames := CreatePKFieldValuesAndNames(table, value)
@@ -39,15 +39,16 @@ func Update[T any](value *T, scenario string) {
 	}
 	whereClause := createWhereClauseAnd(&pkValues, &pkNames)
 	if table.IsScenarioBased {
+		scenario, _ := getScenario(scenarioId)
 		//scenarioMap, _ := getScenarioAndParentsMap(scenario)
-		//scenarioVersions, _ := getScenarioVersionsForAllParents(scenario)
-		_, resultScenarioVersion, err := findFromAllScenarios(value, scenario)
+		scenarioVersions, _ := getScenarioVersionsForAllParents(scenarioId)
+		_, resultScenarioVersion, err := findFromAllScenarios(value, scenarioId)
 		if err != nil {
 			return
 		}
 		scvIndex := -1
 		for i, scv := range resultScenarioVersion {
-			if scv.ScenarioId == scenario {
+			if scv.ScenarioId == scenarioId && scv.ScenarioVersionIndex == scenario.CurrentScenarioVersionIndex {
 				scvIndex = i
 				break
 			}
@@ -55,7 +56,13 @@ func Update[T any](value *T, scenario string) {
 
 		if scvIndex < 0 {
 			insertScenarioRow = true
-			addScenarioFields(&values, &fNames, scenario)
+			var scenarioVersionId string
+			for _, scv := range scenarioVersions {
+				if scv.ScenarioId == scenarioId && scv.ScenarioVersionIndex == scenario.CurrentScenarioVersionIndex {
+					scenarioVersionId = scv.ScenarioVersionId
+				}
+			}
+			addScenarioFields(&values, &fNames, scenarioVersionId)
 		} else {
 			scValues, scNames := createScenarioVersionFieldValuesAndNames(resultScenarioVersion[scvIndex:1])
 			whereClause_sc := createWhereClauseOr(&scValues, &scNames)
@@ -97,15 +104,23 @@ func Find[T any](value *T, scenario string) (*T, error) {
 	}
 	scenarioMap, err := getScenarioAndParentsMap(scenario)
 	if len(result) < 1 {
+		fmt.Println("no record found in Find")
 		return nil, fmt.Errorf("no record found")
 	}
 	if scenario == "" {
 		return &result[0], err
 	}
-	var maxLevel, index int = -1, -1
+	fmt.Println("find result")
+	fmt.Println(result)
+	var maxLevel, maxIndex, index int = -1, -1, -1
 	for i := range result {
 		if scenarioMap[resultScenarioVersion[i].ScenarioId].Level > maxLevel {
 			maxLevel = scenarioMap[resultScenarioVersion[i].ScenarioId].Level
+			maxIndex = resultScenarioVersion[i].ScenarioVersionIndex
+			index = i
+		}
+		if scenarioMap[resultScenarioVersion[i].ScenarioId].Level == maxLevel && resultScenarioVersion[i].ScenarioVersionIndex > maxIndex {
+			maxIndex = resultScenarioVersion[i].ScenarioVersionIndex
 			index = i
 		}
 	}
@@ -135,6 +150,7 @@ func findFromAllScenarios[T any](value *T, scenario string) ([]T, []ScenarioVers
 	defer rows.Close()
 
 	result, scenarioVersionIds, err := convertRowsToObject(value, rows)
+	fmt.Println(scenarioVersionIds)
 	if table.IsScenarioBased {
 		for _, s := range scenarioVersionIds {
 			for _, scv := range scenarioVersions {
