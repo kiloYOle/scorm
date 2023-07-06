@@ -69,6 +69,7 @@ func TestFind(t *testing.T) {
 func TestDbInsertScenario(t *testing.T) {
 	insertTest1 := InsertTestScenario1{Name: "test", Flag: true, Nr: 12}
 	insertTest2 := InsertTestScenario1{Name: "test 2", Flag: true, Nr: 42}
+	insertTest3 := InsertTestScenario1{Name: "test 3", Flag: true, Nr: 13}
 	AutoMigration(&insertTest1)
 	scenario1 := CreateNewScenario("scenario1", "")
 	Insert(&insertTest1, scenario1.ScenarioId)
@@ -76,8 +77,13 @@ func TestDbInsertScenario(t *testing.T) {
 	if len(result) != 1 {
 		t.Fatalf("Expecting 1 row but found %d", len(result))
 	}
-	scenario2 := CreateNewScenario("scenario2", "")
+	scenario2 := CreateNewScenario("scenario2", scenario1.ScenarioId)
 	Insert(&insertTest2, scenario2.ScenarioId)
+	Insert(&insertTest3, scenario1.ScenarioId)
+	result, _ = FindAll(&insertTest1, scenario1.ScenarioId)
+	if len(result) != 2 {
+		t.Fatalf("Expecting 2 rows but found %d", len(result))
+	}
 	result, _ = FindAll(&insertTest1, scenario2.ScenarioId)
 	if len(result) != 2 {
 		t.Fatalf("Expecting 2 rows but found %d", len(result))

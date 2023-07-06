@@ -118,6 +118,7 @@ func getScenarioVersionsForAllParents(scenarioId string) ([]ScenarioVersionTable
 	sort.Slice(scenarioVersions, func(i, j int) bool {
 		return scenarioVersions[i].ScenarioVersionIndex > scenarioVersions[j].ScenarioVersionIndex
 	})
+
 	var scvIndex int = 0
 	scenarioIdLoop := scenarioId
 	for _, sc := range scenarios {

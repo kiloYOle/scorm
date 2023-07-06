@@ -103,7 +103,7 @@ func Find[T any](value *T, scenario string) (*T, error) {
 		return &result[0], err
 	}
 	var maxLevel, index int = -1, -1
-	for i, _ := range result {
+	for i := range result {
 		if scenarioMap[resultScenarioVersion[i].ScenarioId].Level > maxLevel {
 			maxLevel = scenarioMap[resultScenarioVersion[i].ScenarioId].Level
 			index = i
@@ -154,6 +154,7 @@ func FindAll[T any](value *T, scenario string) ([]T, error) {
 	var whereClause string
 	if table.IsScenarioBased {
 		scenarioVersions, _ := getScenarioVersionsForAllParents(scenario)
+		fmt.Printf("find all nr scv %d\n", len(scenarioVersions))
 		scValues, scNames := createScenarioVersionFieldValuesAndNames(scenarioVersions)
 		whereClause = createWhereClauseOr(&scValues, &scNames)
 	}

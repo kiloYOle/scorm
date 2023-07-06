@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -72,5 +73,21 @@ func TestGetScenarioAndVersion(t *testing.T) {
 	result_sc, result_scv, _ = getScenarioAndCurrentVersion(scenario2.ScenarioId)
 	if result_sc != nil && result_scv != nil {
 		t.Fatalf("Expecting 1 of each record but not found all")
+	}
+}
+
+func TestGetScenarioVersionsForAllParents(t *testing.T) {
+	CreateScenarioTables()
+	scenario := CreateNewScenario("Test scenario", "")
+	scenario2 := CreateNewScenario("Test scenario 2", scenario.ScenarioId)
+	result, _ := getScenarioVersionsForAllParents(scenario.ScenarioId)
+	fmt.Println(result)
+	if len(result) != 2 {
+		t.Fatalf("Expecting 2 rows but found %d", len(result))
+	}
+	result, _ = getScenarioVersionsForAllParents(scenario2.ScenarioId)
+	fmt.Println(result)
+	if len(result) != 2 {
+		t.Fatalf("Expecting 2 rows but found %d", len(result))
 	}
 }
